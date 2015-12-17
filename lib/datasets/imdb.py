@@ -7,7 +7,9 @@
 
 import os
 import os.path as osp
-import PIL
+#import PIL
+import Image
+import cv2
 from utils.cython_bbox import bbox_overlaps
 import numpy as np
 import scipy.sparse
@@ -59,8 +61,38 @@ class imdb(object):
         #   gt_classes
         #   flipped
         if self._roidb is not None:
+            
+            #debug Brian
+            """num_images = self.num_images
+            widths = [Image.open(self.image_path_at(i)).size[0]
+                  for i in xrange(num_images)]
+            for i in xrange(num_images):
+             boxes = self._roidb[i]['boxes'].copy()
+             assert (boxes[:, 2] >= boxes[:, 0]).all()
+             #image=cv2.imread(self.image_path_at(i))
+             #width = image.shape[1]
+             #height = image.shape[0]
+             for ii in xrange(boxes.shape[0]):
+                assert (boxes[ii, 2] < widths[i]), '[imdb already] fail at '+str(ii)
+             """
+
             return self._roidb
         self._roidb = self.roidb_handler()
+
+        #debug Brian
+        """num_images = self.num_images
+        widths = [Image.open(self.image_path_at(i)).size[0]
+                  for i in xrange(num_images)]
+        for i in xrange(num_images):
+            boxes = self._roidb[i]['boxes'].copy()
+            assert (boxes[:, 2] >= boxes[:, 0]).all()
+            #image=cv2.imread(self.image_path_at(i))
+            #width = image.shape[1]
+            #height = image.shape[0]
+            for ii in xrange(boxes.shape[0]):
+                assert (boxes[ii, 2] < widths[i]), '[imdb created] fail at '+str(ii)
+        """
+
         return self._roidb
 
     @property
@@ -93,14 +125,34 @@ class imdb(object):
 
     def append_flipped_images(self):
         num_images = self.num_images
-        widths = [PIL.Image.open(self.image_path_at(i)).size[0]
+        widths=[]
+        #for i in xrange(num_images):
+        #
+        #    #print i
+        #    #print self.image_path_at(i)
+        #    assert os.path.exists(self.image_path_at(i)), "fail"
+        #    im = cv2.imread(self.image_path_at(i))
+        #    widths.append(im.shape[0])
+        widths = [Image.open(self.image_path_at(i)).size[0]
                   for i in xrange(num_images)]
         for i in xrange(num_images):
             boxes = self.roidb[i]['boxes'].copy()
+            assert (boxes[:, 2] >= boxes[:, 0]).all()
+            #image=cv2.imread(self.image_path_at(i))
+            #width = image.shape[1]
+            #height = image.shape[0]
+            for ii in xrange(boxes.shape[0]):
+                assert (boxes[ii, 2] < widths[i]), 'fail at '+str(ii)
+            #for rr in range(0,boxes.shape[0]):
+            #    print 'box: '+str(boxes[rr,0])+', '+str(boxes[rr,1])+', '+str(boxes[rr,2])+', '+str(boxes[rr,3])
+            #    assert boxes[rr, 2] <= boxes[rr, 0]
             oldx1 = boxes[:, 0].copy()
             oldx2 = boxes[:, 2].copy()
+            #change Brian, added max()
             boxes[:, 0] = widths[i] - oldx2 - 1
             boxes[:, 2] = widths[i] - oldx1 - 1
+            #boxes[:, 0] = oldx2
+            #boxes[:, 2] = oldx1
             assert (boxes[:, 2] >= boxes[:, 0]).all()
             entry = {'boxes' : boxes,
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
@@ -156,20 +208,38 @@ class imdb(object):
         roidb = []
         for i in xrange(self.num_images):
             boxes = box_list[i]
+
+            #debug Brian
+            image=cv2.imread(self.image_path_at(i))
+            width = image.shape[1]
+            for box in boxes:
+                assert box[2]<width
+
             num_boxes = boxes.shape[0]
             overlaps = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
 
             if gt_roidb is not None:
                 gt_boxes = gt_roidb[i]['boxes']
                 gt_classes = gt_roidb[i]['gt_classes']
-                gt_overlaps = bbox_overlaps(boxes.astype(np.float),
+                if not gt_boxes.shape[0]==0:
+                    gt_overlaps = bbox_overlaps(boxes.astype(np.float),
                                             gt_boxes.astype(np.float))
-                argmaxes = gt_overlaps.argmax(axis=1)
-                maxes = gt_overlaps.max(axis=1)
-                I = np.where(maxes > 0)[0]
-                overlaps[I, gt_classes[argmaxes[I]]] = maxes[I]
+                    argmaxes = gt_overlaps.argmax(axis=1)
+                    maxes = gt_overlaps.max(axis=1)
+                    I = np.where(maxes > 0)[0]
+                    overlaps[I, gt_classes[argmaxes[I]]] = maxes[I]
 
+            #is same-working  debug Brian
+            #print 'DEBUG overlaps'
+            #for ii in range(0,overlaps.shape[0]):
+            #    s=''
+            #    for jj in range(0,overlaps.shape[1]):
+            #        s+=str(overlaps[ii,jj])+', '
+            #    print s
+            #assert False
+            
             overlaps = scipy.sparse.csr_matrix(overlaps)
+            #print overlaps
             roidb.append({'boxes' : boxes,
                           'gt_classes' : np.zeros((num_boxes,),
                                                   dtype=np.int32),
@@ -184,8 +254,12 @@ class imdb(object):
             a[i]['boxes'] = np.vstack((a[i]['boxes'], b[i]['boxes']))
             a[i]['gt_classes'] = np.hstack((a[i]['gt_classes'],
                                             b[i]['gt_classes']))
+            #change Brian
+            #if a[i]['gt_overlaps'].shape[0]>0 and b[i]['gt_overlaps'].shape[0]>0:
             a[i]['gt_overlaps'] = scipy.sparse.vstack([a[i]['gt_overlaps'],
                                                        b[i]['gt_overlaps']])
+            #elif b[i]['gt_overlaps'].shape[0]>0:
+                #a[i]['gt_overlaps']=b[i]['gt_overlaps']
         return a
 
     def competition_mode(self, on):

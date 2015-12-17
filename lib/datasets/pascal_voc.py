@@ -221,6 +221,15 @@ class pascal_voc(datasets.imdb):
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
 
+
+        #same-working  debug Brian
+        #for ii in range(0,overlaps.shape[0]):
+        #    s=''
+        #    for jj in range(0,overlaps.shape[1]):
+        #        s+=str(overlaps[ii,jj])+', '
+        #    print s
+        #assert False
+
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
         return {'boxes' : boxes,

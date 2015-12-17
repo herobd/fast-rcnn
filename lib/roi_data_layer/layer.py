@@ -45,6 +45,10 @@ class RoIDataLayer(caffe.Layer):
         else:
             db_inds = self._get_next_minibatch_inds()
             minibatch_db = [self._roidb[i] for i in db_inds]
+            #debug Brian
+            #print 'DEBUGGING, should have classes'
+            #print minibatch_db[0]
+            ##########
             return get_minibatch(minibatch_db, self._num_classes)
 
     def set_roidb(self, roidb):
@@ -106,8 +110,13 @@ class RoIDataLayer(caffe.Layer):
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""
         blobs = self._get_next_minibatch()
-
+        
         for blob_name, blob in blobs.iteritems():
+            #printing blob for debugging --Brian
+            #print blob_name
+            #print blob
+            #break
+            ########
             top_ind = self._name_to_top_map[blob_name]
             # Reshape net's input blobs
             top[top_ind].reshape(*(blob.shape))

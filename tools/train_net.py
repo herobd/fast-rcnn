@@ -19,6 +19,8 @@ import pprint
 import numpy as np
 import sys
 
+import Image
+
 def parse_args():
     """
     Parse input arguments
@@ -82,6 +84,21 @@ if __name__ == '__main__':
 
     imdb = get_imdb(args.imdb_name)
     print 'Loaded dataset `{:s}` for training'.format(imdb.name)
+
+    #debug Brian
+    rrr=imdb.roidb
+    num_images = imdb.num_images
+    widths = [Image.open(imdb.image_path_at(i)).size[0]
+              for i in xrange(num_images)]
+    for i in xrange(num_images):
+        boxes = rrr[i]['boxes'].copy()
+        assert (boxes[:, 2] >= boxes[:, 0]).all()
+        #image=cv2.imread(self.image_path_at(i))
+        #width = image.shape[1]
+        #height = image.shape[0]
+        for ii in xrange(boxes.shape[0]):
+            assert (boxes[ii, 2] < widths[i]), '[tools] fail at '+str(ii)
+
     roidb = get_training_roidb(imdb)
 
     output_dir = get_output_dir(imdb, None)

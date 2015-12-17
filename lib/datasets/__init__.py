@@ -7,6 +7,8 @@
 
 from .imdb import imdb
 from .pascal_voc import pascal_voc
+from .my_imagenet import my_imagenet
+from .cub import cub
 from . import factory
 
 import os.path as osp

@@ -36,6 +36,18 @@ def prepare_roidb(imdb):
         # max overlap > 0 => class should not be zero (must be a fg class)
         nonzero_inds = np.where(max_overlaps > 0)[0]
         assert all(max_classes[nonzero_inds] != 0)
+        
+        #failpoint debug Brian
+        #print 'DEBUG max_overlaps max_classes'
+        #print max_overlaps
+        #print max_classes
+        #for ii in range(0,gt_overlaps.shape[0]):
+        #    s=''
+        #    for jj in range(0,gt_overlaps.shape[1]):
+        #        s += str(gt_overlaps[ii,jj])+', '
+        #    print s
+        #assert False
+
 
 def add_bbox_regression_targets(roidb):
     """Add information needed to train bounding-box regressors."""
@@ -83,9 +95,10 @@ def add_bbox_regression_targets(roidb):
 
 def _compute_targets(rois, overlaps, labels):
     """Compute bounding-box regression targets for an image."""
+    #print overlaps
     # Ensure ROIs are floats
     rois = rois.astype(np.float, copy=False)
-
+    
     # Indices of ground-truth ROIs
     gt_inds = np.where(overlaps == 1)[0]
     # Indices of examples for which we try to make predictions
@@ -94,10 +107,22 @@ def _compute_targets(rois, overlaps, labels):
     # Get IoU overlap between each ex ROI and gt ROI
     ex_gt_overlaps = utils.cython_bbox.bbox_overlaps(rois[ex_inds, :],
                                                      rois[gt_inds, :])
-
+    #print 'exind'
+    #print rois[ex_inds, :]
+    #print 'gtind'
+    #print rois[gt_inds, :]
+    #print 'res'
+    #print ex_gt_overlaps
+    
     # Find which gt ROI each ex ROI has max overlap with:
     # this will be the ex ROI's gt target
+    
+    #error Brian
+    #if ex_gt_overlaps.shape[0]==0:
+    #    targets = np.zeros((0, 5), dtype=np.float32)
+    #    return targets
     gt_assignment = ex_gt_overlaps.argmax(axis=1)
+    
     gt_rois = rois[gt_inds[gt_assignment], :]
     ex_rois = rois[ex_inds, :]
 
